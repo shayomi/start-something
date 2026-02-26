@@ -1,9 +1,9 @@
 # 🚀 ai-scaffold
 
 <p align="center">
-  <img src="https://img.shields.io/npm/v/ai-scaffold?color=a855f7&style=for-the-badge" alt="npm version">
-  <img src="https://img.shields.io/npm/dt/ai-scaffold?color=3b82f6&style=for-the-badge" alt="downloads">
-  <img src="https://img.shields.io/github/stars/yourusername/ai-scaffold?color=f59e0b&style=for-the-badge" alt="stars">
+  <img src="https://img.shields.io/npm/v/just-start-dude?color=a855f7&style=for-the-badge" alt="npm version">
+  <img src="https://img.shields.io/npm/dt/just-start-dude?color=3b82f6&style=for-the-badge" alt="downloads">
+  <img src="https://img.shields.io/github/stars/shayomiiiii/just-start-dude??color=f59e0b&style=for-the-badge" alt="stars">
   <img src="https://img.shields.io/badge/powered%20by-Claude%20AI-06b6d4?style=for-the-badge" alt="Claude AI">
 </p>
 
@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <img src="https://github.com/yourusername/ai-scaffold/raw/main/demo.gif" alt="demo" width="700">
+  <img src="https://github.com/shayomi/ai-scaffold/raw/main/demo.gif" alt="demo" width="700">
 </p>
 
 ---
@@ -48,13 +48,13 @@ $ ai-scaffold create "a SaaS app for freelancers to track invoices and clients"
 ## 📦 Installation
 
 ```bash
-npm install -g ai-scaffold
+npm install -g just-start-dude
 ```
 
 Or use without installing:
 
 ```bash
-npx ai-scaffold create "your project description"
+npx just-start-dude create "your project description"
 ```
 
 ---
@@ -64,7 +64,7 @@ npx ai-scaffold create "your project description"
 You'll need an [Anthropic API key](https://console.anthropic.com).
 
 ```bash
-ai-scaffold config
+just-start-dude config
 ```
 
 Or set it as an environment variable:
@@ -81,38 +81,38 @@ export ANTHROPIC_API_KEY=sk-ant-...
 
 ```bash
 # Interactive - will ask for description
-ai-scaffold create
+just-start-dude create
 
 # Direct description
-ai-scaffold create "a REST API for a food delivery app with auth"
+just-start-dude create "a REST API for a food delivery app with auth"
 
 # Force a specific template
-ai-scaffold create "my app" --template fastapi
+just-start-dude create "my app" --template fastapi
 
 # Custom output directory
-ai-scaffold create "my app" --output ~/projects
+just-start-dude create "my app" --output ~/projects
 ```
 
 ### List templates
 
 ```bash
-ai-scaffold templates
+just-start-dude templates
 ```
 
-| Template | Stack |
-|----------|-------|
-| `nextjs` | Next.js 14 + Tailwind + Prisma + NextAuth |
-| `fastapi` | FastAPI + SQLAlchemy + Alembic + Docker |
-| `react` | React + Vite + Tailwind + React Query |
-| `express` | Express.js + TypeScript + Prisma + JWT |
-| `fullstack` | Next.js + FastAPI + Docker Compose |
-| `cli` | Node.js + Commander + Chalk + Inquirer |
-| `chrome-ext` | Chrome Extension + React + Vite |
+| Template     | Stack                                     |
+| ------------ | ----------------------------------------- |
+| `nextjs`     | Next.js 14 + Tailwind + Prisma + NextAuth |
+| `fastapi`    | FastAPI + SQLAlchemy + Alembic + Docker   |
+| `react`      | React + Vite + Tailwind + React Query     |
+| `express`    | Express.js + TypeScript + Prisma + JWT    |
+| `fullstack`  | Next.js + FastAPI + Docker Compose        |
+| `cli`        | Node.js + Commander + Chalk + Inquirer    |
+| `chrome-ext` | Chrome Extension + React + Vite           |
 
 ### Options
 
 ```bash
-ai-scaffold create "my app" [options]
+just-start-dude create "my app" [options]
 
 Options:
   -o, --output <dir>       Output directory (default: current dir)
@@ -126,12 +126,12 @@ Options:
 ## 💡 Example prompts
 
 ```bash
-ai-scaffold create "a Twitter clone with posts, likes, and follows"
-ai-scaffold create "a Python ML API that classifies images"
-ai-scaffold create "a Notion-like note taking app with markdown support"
-ai-scaffold create "a CLI tool that converts CSV files to different formats"
-ai-scaffold create "a Chrome extension that summarizes YouTube videos"
-ai-scaffold create "a real-time chat app with rooms and file sharing"
+just-start-dude create "a Twitter clone with posts, likes, and follows"
+just-start-dude create "a Python ML API that classifies images"
+just-start-dude create "a Notion-like note taking app with markdown support"
+just-start-dude create "a CLI tool that converts CSV files to different formats"
+just-start-dude create "a Chrome extension that summarizes YouTube videos"
+just-start-dude create "a real-time chat app with rooms and file sharing"
 ```
 
 ---
@@ -141,8 +141,9 @@ ai-scaffold create "a real-time chat app with rooms and file sharing"
 PRs welcome! Check out [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 Some ideas:
+
 - Add more templates (Flutter, Rust, Go, Django, Rails)
-- Add `ai-scaffold add <feature>` to add features to existing projects
+- Add `just-start-dude add <feature>` to add features to existing projects
 - VS Code extension
 - GitHub Actions integration
 
@@ -150,13 +151,13 @@ Some ideas:
 
 ## 📄 License
 
-MIT © [yourusername](https://github.com/yourusername)
+MIT © [shayomi](https://github.com/shayomi)
 
 ---
 
 <p align="center">
   Built with ❤️ and Claude AI
   <br>
-  <a href="https://github.com/yourusername/ai-scaffold/issues">Report Bug</a> · 
-  <a href="https://github.com/yourusername/ai-scaffold/issues">Request Feature</a>
+  <a href="https://github.com/shayomi/start-something/issues">Report Bug</a> · 
+  <a href="https://github.com/shayomi/start-something/issues">Request Feature</a>
 </p>
