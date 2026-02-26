@@ -150,7 +150,7 @@ Some ideas:
 
 ## 📄 License
 
-MIT © [yourusername](https://github.com/yourusername)
+MIT © [shayomi](https://github.com/shayomi)
 
 ---
 
