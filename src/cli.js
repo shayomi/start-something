@@ -7,6 +7,7 @@ import gradient from "gradient-string";
 import boxen from "boxen";
 import { scaffold } from "./index.js";
 import { configure } from "./config.js";
+import { runSkill, listSkills } from "./skills/index.js";
 
 const cool = gradient(["#a855f7", "#3b82f6", "#06b6d4"]);
 
@@ -35,7 +36,7 @@ console.log("");
 program
   .name("ai-scaffold")
   .description("AI-powered project scaffolding CLI")
-  .version("1.0.0");
+  .version("2.0.0");
 
 program
   .command("create [description]")
@@ -75,6 +76,34 @@ program
       console.log(
         `  ${chalk.cyan("●")} ${chalk.bold(t.name.padEnd(15))} ${chalk.gray(t.desc)}`
       );
+    });
+    console.log("");
+  });
+
+program
+  .command("setup <skill>")
+  .alias("s")
+  .description("Add a service or integration to an existing project")
+  .option("-d, --dir <path>", "Project directory (defaults to cwd)")
+  .action(async (skill, options) => {
+    await runSkill(skill, options);
+  });
+
+program
+  .command("skills")
+  .description("List all available setup skills")
+  .action(async () => {
+    const skills = await listSkills();
+    console.log(chalk.bold.magenta("\n  Available Skills:\n"));
+    skills.forEach(({ id, name, description, supportedFrameworks }) => {
+      const frameworks =
+        supportedFrameworks.length > 0
+          ? chalk.gray(` (${supportedFrameworks.join(", ")})`)
+          : chalk.gray(" (any framework)");
+      console.log(
+        `  ${chalk.cyan("●")} ${chalk.bold(id.padEnd(12))} ${chalk.white(name)}${frameworks}`
+      );
+      console.log(`  ${" ".repeat(15)} ${chalk.gray(description)}`);
     });
     console.log("");
   });

@@ -1,0 +1,275 @@
+const DATE = new Date().toISOString().split('T')[0];
+
+export default {
+  name: 'Strapi',
+  description: 'Set up Strapi CMS with a Docker Compose stack and fetch helper',
+  supportedFrameworks: [],
+
+  steps(context) {
+    const { hasTypescript } = context;
+    const ext = hasTypescript ? 'ts' : 'js';
+
+    const dockerCompose = `version: '3.8'
+
+services:
+  strapi:
+    image: strapi/strapi:latest
+    restart: unless-stopped
+    environment:
+      DATABASE_CLIENT: postgres
+      DATABASE_HOST: strapi-db
+      DATABASE_PORT: 5432
+      DATABASE_NAME: strapi
+      DATABASE_USERNAME: strapi
+      DATABASE_PASSWORD: strapi_password
+      JWT_SECRET: your-jwt-secret-change-me
+      ADMIN_JWT_SECRET: your-admin-jwt-secret-change-me
+      APP_KEYS: key1,key2,key3,key4
+      API_TOKEN_SALT: your-api-token-salt-change-me
+      TRANSFER_TOKEN_SALT: your-transfer-token-salt-change-me
+    ports:
+      - '1337:1337'
+    volumes:
+      - strapi_data:/srv/app
+    depends_on:
+      - strapi-db
+
+  strapi-db:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: strapi
+      POSTGRES_USER: strapi
+      POSTGRES_PASSWORD: strapi_password
+    volumes:
+      - strapi_db_data:/var/lib/postgresql/data
+
+volumes:
+  strapi_data:
+  strapi_db_data:
+`;
+
+    const strapiHelper = hasTypescript
+      ? `const STRAPI_URL = process.env.STRAPI_URL ?? 'http://localhost:1337';
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN ?? '';
+
+interface StrapiResponse<T> {
+  data: T;
+  meta?: {
+    pagination?: {
+      page: number;
+      pageSize: number;
+      pageCount: number;
+      total: number;
+    };
+  };
+}
+
+export async function strapiGet<T>(
+  endpoint: string,
+  params?: Record<string, string>
+): Promise<StrapiResponse<T>> {
+  const url = new URL(\`\${STRAPI_URL}/api/\${endpoint}\`);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: \`Bearer \${STRAPI_API_TOKEN}\`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(\`Strapi error: \${res.status} \${res.statusText}\`);
+  }
+
+  return res.json();
+}
+
+export async function strapiPost<T>(
+  endpoint: string,
+  body: Record<string, unknown>
+): Promise<StrapiResponse<T>> {
+  const res = await fetch(\`\${STRAPI_URL}/api/\${endpoint}\`, {
+    method: 'POST',
+    headers: {
+      Authorization: \`Bearer \${STRAPI_API_TOKEN}\`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ data: body }),
+  });
+
+  if (!res.ok) {
+    throw new Error(\`Strapi error: \${res.status} \${res.statusText}\`);
+  }
+
+  return res.json();
+}
+`
+      : `const STRAPI_URL = process.env.STRAPI_URL ?? 'http://localhost:1337';
+const STRAPI_API_TOKEN = process.env.STRAPI_API_TOKEN ?? '';
+
+export async function strapiGet(endpoint, params) {
+  const url = new URL(\`\${STRAPI_URL}/api/\${endpoint}\`);
+  if (params) {
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  }
+
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: \`Bearer \${STRAPI_API_TOKEN}\`,
+      'Content-Type': 'application/json',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(\`Strapi error: \${res.status} \${res.statusText}\`);
+  }
+
+  return res.json();
+}
+
+export async function strapiPost(endpoint, body) {
+  const res = await fetch(\`\${STRAPI_URL}/api/\${endpoint}\`, {
+    method: 'POST',
+    headers: {
+      Authorization: \`Bearer \${STRAPI_API_TOKEN}\`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ data: body }),
+  });
+
+  if (!res.ok) {
+    throw new Error(\`Strapi error: \${res.status} \${res.statusText}\`);
+  }
+
+  return res.json();
+}
+`;
+
+    return [
+      {
+        type: 'write',
+        label: 'Write docker-compose.strapi.yml',
+        filePath: 'docker-compose.strapi.yml',
+        content: dockerCompose,
+      },
+      {
+        type: 'write',
+        label: `Write lib/strapi.${ext}`,
+        filePath: `lib/strapi.${ext}`,
+        content: strapiHelper,
+      },
+      {
+        type: 'env',
+        label: 'Add env vars to .env.example',
+        vars: {
+          STRAPI_URL: 'http://localhost:1337',
+          STRAPI_API_TOKEN: 'your-strapi-api-token',
+        },
+      },
+      {
+        type: 'doc',
+        label: 'Write docs/strapi.md',
+        content: docContent(DATE),
+      },
+    ];
+  },
+
+  nextSteps() {
+    return [
+      'Run `docker compose -f docker-compose.strapi.yml up -d` to start Strapi',
+      'Open http://localhost:1337/admin to create your admin account',
+      'Create content types in the Strapi admin panel',
+      'Generate an API token in Settings → API Tokens and add to STRAPI_API_TOKEN',
+      'Use strapiGet() from lib/strapi to fetch content in your app',
+    ];
+  },
+};
+
+function docContent(date) {
+  return `# Strapi Setup Guide
+> Generated by ai-scaffold on ${date}
+
+## What is Strapi?
+Strapi is a headless CMS that runs alongside your frontend. It provides a visual admin panel for managing content and a REST/GraphQL API for your app to consume.
+
+## What was set up
+| Item | Detail |
+|------|--------|
+| \`docker-compose.strapi.yml\` | Strapi + Postgres Docker stack |
+| \`lib/strapi.js\` | Typed fetch helper for Strapi REST API |
+
+## Environment Variables
+| Variable | Description | Where to get it |
+|----------|-------------|-----------------|
+| \`STRAPI_URL\` | Strapi server URL | \`http://localhost:1337\` for local |
+| \`STRAPI_API_TOKEN\` | API token for authenticated requests | Strapi admin → Settings → API Tokens |
+
+## Usage
+
+### Starting the Docker Stack
+\`\`\`bash
+docker compose -f docker-compose.strapi.yml up -d
+\`\`\`
+
+### Fetching Content
+\`\`\`js
+import { strapiGet } from '@/lib/strapi';
+
+// Get all articles
+const { data } = await strapiGet('articles');
+
+// Get with filters
+const { data } = await strapiGet('articles', { 'filters[published]': 'true' });
+
+// Get single item
+const { data } = await strapiGet('articles/1?populate=*');
+\`\`\`
+
+### Creating Content
+\`\`\`js
+import { strapiPost } from '@/lib/strapi';
+
+const { data } = await strapiPost('articles', {
+  title: 'My Article',
+  content: 'Hello world',
+});
+\`\`\`
+
+## Local Development
+\`\`\`bash
+# Start Strapi + Postgres
+docker compose -f docker-compose.strapi.yml up -d
+
+# View logs
+docker compose -f docker-compose.strapi.yml logs -f
+
+# Stop
+docker compose -f docker-compose.strapi.yml down
+
+# Stop + remove data
+docker compose -f docker-compose.strapi.yml down -v
+\`\`\`
+
+## Production Checklist
+- [ ] Change all default passwords and secrets in docker-compose.strapi.yml
+- [ ] Set STRAPI_API_TOKEN in your frontend hosting env
+- [ ] Configure CORS in Strapi to allow your frontend domain
+- [ ] Set up Strapi on a dedicated server or use Strapi Cloud
+- [ ] Enable HTTPS for your Strapi instance
+- [ ] Back up your Strapi database regularly
+
+## Troubleshooting
+- **Port 1337 in use**: Change the port mapping in docker-compose.strapi.yml
+- **API returns 403**: Check that your API token has the right permissions
+- **CORS errors**: Go to Strapi admin → Settings → CORS and add your frontend URL
+
+## Resources
+- [Strapi Docs](https://docs.strapi.io)
+- [Strapi REST API](https://docs.strapi.io/dev-docs/api/rest)
+- [Strapi Docker](https://docs.strapi.io/dev-docs/installation/docker)
+`;
+}
