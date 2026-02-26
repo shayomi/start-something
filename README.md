@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/just-start-dude?color=a855f7&style=for-the-badge" alt="npm version">
   <img src="https://img.shields.io/npm/dt/just-start-dude?color=3b82f6&style=for-the-badge" alt="downloads">
-  <img src="https://img.shields.io/github/stars/shayomiiiii/start-something??color=f59e0b&style=for-the-badge" alt="stars">
+  <img src="https://img.shields.io/github/stars/shayomi/start-something??color=f59e0b&style=for-the-badge" alt="stars">
   <img src="https://img.shields.io/badge/powered%20by-Claude%20AI-06b6d4?style=for-the-badge" alt="Claude AI">
 </p>
 
