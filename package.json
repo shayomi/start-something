@@ -1,0 +1,42 @@
+{
+  "name": "start-something",
+  "version": "1.0.0",
+  "description": "AI-powered project scaffolding. Describe your app, get a full project.",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "ai-scaffold": "./src/cli.js"
+  },
+  "scripts": {
+    "start": "node src/cli.js"
+  },
+  "keywords": [
+    "ai",
+    "scaffold",
+    "cli",
+    "generator",
+    "boilerplate",
+    "claude",
+    "openai",
+    "nextjs",
+    "fastapi",
+    "react"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "inquirer": "^10.1.8",
+    "ora": "^8.1.0",
+    "fs-extra": "^11.2.0",
+    "open": "^10.1.0",
+    "figlet": "^1.7.0",
+    "gradient-string": "^2.0.2",
+    "boxen": "^7.1.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
