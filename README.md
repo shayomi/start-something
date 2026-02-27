@@ -1,4 +1,4 @@
-# 🚀 ai-scaffold
+# 🚀 just-start-dude
 
 <p align="center">
   <img src="https://img.shields.io/npm/v/just-start-dude?color=a855f7&style=for-the-badge" alt="npm version">
@@ -34,7 +34,7 @@ You type one sentence. You get:
 ## 🎬 Demo
 
 ```bash
-$ ai-scaffold create "a SaaS app for freelancers to track invoices and clients"
+$ just-start-dude create "a SaaS app for freelancers to track invoices and clients"
 ```
 
 → Picks **Next.js + Prisma + NextAuth + Tailwind**  
@@ -123,6 +123,52 @@ Options:
 
 ---
 
+## ⚡ Skills — Add features to existing projects
+
+Already have a project? Use `just-start-dude setup` to drop in pre-built integrations instantly. Each skill installs the right packages, writes helper files, appends vars to `.env.example`, and generates a `docs/<skill>.md` guide explaining everything it did.
+
+### Available skills
+
+| Skill      | Works with              | What it sets up                                            |
+| ---------- | ----------------------- | ---------------------------------------------------------- |
+| `supabase` | Next.js, React, Express | Supabase with a typed client helper and local Docker stack |
+| `neon`     | Any framework           | Neon serverless Postgres with Drizzle ORM                  |
+| `strapi`   | Any framework           | Strapi CMS with Docker Compose stack and fetch helper      |
+| `shadcn`   | Next.js, React          | shadcn/ui component library with all base components       |
+| `clerk`    | Next.js                 | Clerk authentication with middleware and auth pages        |
+| `oauth`    | Next.js                 | Auth.js v5 with GitHub and Google providers                |
+
+### How to use
+
+```bash
+# See all available skills
+just-start-dude skills
+
+# Add Supabase to your project
+just-start-dude setup supabase
+
+# Add Neon + Drizzle ORM
+just-start-dude setup neon
+
+# Add shadcn/ui
+just-start-dude setup shadcn
+
+# Add Clerk auth
+just-start-dude setup clerk
+
+# Add OAuth (GitHub + Google via Auth.js)
+just-start-dude setup oauth
+
+# Add Strapi CMS
+just-start-dude setup strapi
+
+# Target a specific directory
+just-start-dude setup supabase --dir /path/to/your-project
+just-start-dude setup supabase -d ../my-app
+```
+
+---
+
 ## 💡 Example prompts
 
 ```bash
@@ -143,7 +189,7 @@ PRs welcome! Check out [CONTRIBUTING.md](./CONTRIBUTING.md).
 Some ideas:
 
 - Add more templates (Flutter, Rust, Go, Django, Rails)
-- Add `just-start-dude add <feature>` to add features to existing projects
+- Add more skills (Stripe, Resend, Cloudinary, PlanetScale)
 - VS Code extension
 - GitHub Actions integration
 
