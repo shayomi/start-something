@@ -1,0 +1,207 @@
+import { installStep } from './utils.js';
+
+const DATE = new Date().toISOString().split('T')[0];
+
+export default {
+  name: 'Postmark',
+  description: 'Set up Postmark transactional email with templates, batch sending, and bounce handling',
+  category: 'Email',
+  supportedFrameworks: [],
+
+  steps(context) {
+    const { hasTypescript, packageManager } = context;
+    const ext = hasTypescript ? 'ts' : 'js';
+
+    const postmarkClient = hasTypescript
+      ? `import { ServerClient } from 'postmark';
+
+export const postmark = new ServerClient(process.env.POSTMARK_SERVER_TOKEN!);
+
+const FROM_EMAIL = process.env.POSTMARK_FROM_EMAIL ?? 'noreply@yourdomain.com';
+
+// ─── Send a single email ──────────────────────────────────
+
+export async function sendEmail({
+  to,
+  subject,
+  htmlBody,
+  textBody,
+  replyTo,
+  tag,
+}: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+  replyTo?: string;
+  tag?: string;
+}) {
+  return postmark.sendEmail({
+    From: FROM_EMAIL,
+    To: to,
+    Subject: subject,
+    HtmlBody: htmlBody,
+    TextBody: textBody ?? htmlBody.replace(/<[^>]+>/g, ''),
+    ReplyTo: replyTo,
+    Tag: tag,
+    TrackOpens: true,
+    TrackLinks: 'HtmlAndText',
+  });
+}
+
+// ─── Send using a Postmark template ───────────────────────
+
+export async function sendTemplateEmail({
+  to,
+  templateAlias,
+  templateModel,
+}: {
+  to: string;
+  templateAlias: string;
+  templateModel: Record<string, unknown>;
+}) {
+  return postmark.sendEmailWithTemplate({
+    From: FROM_EMAIL,
+    To: to,
+    TemplateAlias: templateAlias,
+    TemplateModel: templateModel,
+  });
+}
+
+// ─── Batch send ───────────────────────────────────────────
+
+export async function sendBatchEmails(messages: Array<{
+  to: string;
+  subject: string;
+  htmlBody: string;
+  tag?: string;
+}>) {
+  return postmark.sendEmailBatch(
+    messages.map((m) => ({
+      From: FROM_EMAIL,
+      To: m.to,
+      Subject: m.subject,
+      HtmlBody: m.htmlBody,
+      Tag: m.tag,
+    }))
+  );
+}
+
+// ─── Pre-built transactional helpers ─────────────────────
+
+export async function sendWelcomeEmail(to: string, name: string) {
+  return sendEmail({
+    to,
+    subject: \`Welcome, \${name}!\`,
+    htmlBody: \`<h1>Welcome, \${name}!</h1><p>Thanks for joining us.</p>\`,
+    tag: 'welcome',
+  });
+}
+
+export async function sendPasswordResetEmail(to: string, resetUrl: string) {
+  return sendEmail({
+    to,
+    subject: 'Reset your password',
+    htmlBody: \`<p>Click <a href="\${resetUrl}">here</a> to reset your password. Expires in 1 hour.</p>\`,
+    tag: 'password-reset',
+  });
+}
+`
+      : `import { ServerClient } from 'postmark';
+
+export const postmark = new ServerClient(process.env.POSTMARK_SERVER_TOKEN);
+const FROM_EMAIL = process.env.POSTMARK_FROM_EMAIL ?? 'noreply@yourdomain.com';
+
+export async function sendEmail({ to, subject, htmlBody, textBody, replyTo, tag }) {
+  return postmark.sendEmail({
+    From: FROM_EMAIL, To: to, Subject: subject,
+    HtmlBody: htmlBody,
+    TextBody: textBody ?? htmlBody.replace(/<[^>]+>/g, ''),
+    ReplyTo: replyTo, Tag: tag,
+    TrackOpens: true, TrackLinks: 'HtmlAndText',
+  });
+}
+
+export async function sendTemplateEmail({ to, templateAlias, templateModel }) {
+  return postmark.sendEmailWithTemplate({
+    From: FROM_EMAIL, To: to,
+    TemplateAlias: templateAlias,
+    TemplateModel: templateModel,
+  });
+}
+
+export async function sendBatchEmails(messages) {
+  return postmark.sendEmailBatch(
+    messages.map((m) => ({ From: FROM_EMAIL, To: m.to, Subject: m.subject, HtmlBody: m.htmlBody, Tag: m.tag }))
+  );
+}
+
+export async function sendWelcomeEmail(to, name) {
+  return sendEmail({ to, subject: \`Welcome, \${name}!\`, htmlBody: \`<h1>Welcome!</h1>\`, tag: 'welcome' });
+}
+
+export async function sendPasswordResetEmail(to, resetUrl) {
+  return sendEmail({ to, subject: 'Reset your password', htmlBody: \`<a href="\${resetUrl}">Reset password</a>\`, tag: 'password-reset' });
+}
+`;
+
+    return [
+      installStep(packageManager, ['postmark']),
+      {
+        type: 'write',
+        label: `Write lib/postmark.${ext}`,
+        filePath: `lib/postmark.${ext}`,
+        content: postmarkClient,
+      },
+      {
+        type: 'env',
+        label: 'Add Postmark env vars to .env.example',
+        vars: {
+          POSTMARK_SERVER_TOKEN: 'your-postmark-server-token',
+          POSTMARK_FROM_EMAIL: 'noreply@yourdomain.com',
+        },
+      },
+      {
+        type: 'doc',
+        label: 'Write docs/postmark.md',
+        content: docContent(DATE),
+      },
+    ];
+  },
+
+  nextSteps() {
+    return [
+      'Create an account at https://postmarkapp.com',
+      'Create a Server and copy the Server API Token into POSTMARK_SERVER_TOKEN',
+      'Verify your sender email or domain in Postmark → Sender Signatures',
+      'Set POSTMARK_FROM_EMAIL to your verified sending address',
+      'Use sendWelcomeEmail() and sendPasswordResetEmail() or create custom templates',
+    ];
+  },
+};
+
+function docContent(date) {
+  return `# Postmark Setup Guide
+> Generated by ai-scaffold on ${date}
+
+## What was set up
+| Item | Detail |
+|------|--------|
+| Package | \`postmark\` |
+| \`lib/postmark.js\` | Client, sendEmail, sendTemplateEmail, sendBatchEmails, welcome/reset helpers |
+
+## Usage
+\`\`\`js
+import { sendWelcomeEmail, sendTemplateEmail } from '@/lib/postmark';
+
+await sendWelcomeEmail('alice@example.com', 'Alice');
+
+// Using Postmark templates
+await sendTemplateEmail({ to: 'alice@example.com', templateAlias: 'welcome', templateModel: { name: 'Alice' } });
+\`\`\`
+
+## Resources
+- [Postmark Docs](https://postmarkapp.com/developer)
+- [Node.js SDK](https://github.com/ActiveCampaign/postmark.js)
+`;
+}

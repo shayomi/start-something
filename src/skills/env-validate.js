@@ -1,0 +1,212 @@
+import { installStep } from './utils.js';
+
+const DATE = new Date().toISOString().split('T')[0];
+
+export default {
+  name: 'Env Validate',
+  description: 'Set up Zod-based environment variable validation — fail fast with clear errors on missing vars',
+  category: 'Developer Tools',
+  supportedFrameworks: [],
+
+  steps(context) {
+    const { hasTypescript, packageManager } = context;
+    const ext = hasTypescript ? 'ts' : 'js';
+
+    const envFile = hasTypescript
+      ? `import { z } from 'zod';
+
+// ─── Schema ───────────────────────────────────────────────
+// Add all your required and optional env vars here.
+// The process will fail to start if any required var is missing.
+
+const envSchema = z.object({
+  // App
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().default(3000),
+
+  // Database (uncomment what you use)
+  // DATABASE_URL: z.string().url(),
+
+  // Auth (uncomment what you use)
+  // NEXTAUTH_URL: z.string().url().optional(),
+  // NEXTAUTH_SECRET: z.string().min(32),
+
+  // Email (uncomment what you use)
+  // RESEND_API_KEY: z.string().startsWith('re_'),
+
+  // Payments (uncomment what you use)
+  // STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
+  // STRIPE_WEBHOOK_SECRET: z.string().startsWith('whsec_'),
+});
+
+// ─── Validation ───────────────────────────────────────────
+
+function validateEnv() {
+  const parsed = envSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    const messages = Object.entries(errors)
+      .map(([key, val]) => \`  ❌ \${key}: \${val?.join(', ')}\`)
+      .join('\\n');
+
+    console.error('\\n❌ Invalid environment variables:\\n' + messages + '\\n');
+    process.exit(1);
+  }
+
+  return parsed.data;
+}
+
+export const env = validateEnv();
+`
+      : `import { z } from 'zod';
+
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().default(3000),
+
+  // Database (uncomment what you use)
+  // DATABASE_URL: z.string().url(),
+
+  // Auth (uncomment what you use)
+  // NEXTAUTH_SECRET: z.string().min(32),
+
+  // Email (uncomment what you use)
+  // RESEND_API_KEY: z.string().startsWith('re_'),
+
+  // Payments (uncomment what you use)
+  // STRIPE_SECRET_KEY: z.string().startsWith('sk_'),
+});
+
+function validateEnv() {
+  const parsed = envSchema.safeParse(process.env);
+
+  if (!parsed.success) {
+    const errors = parsed.error.flatten().fieldErrors;
+    const messages = Object.entries(errors)
+      .map(([key, val]) => \`  ❌ \${key}: \${val?.join(', ')}\`)
+      .join('\\n');
+
+    console.error('\\n❌ Invalid environment variables:\\n' + messages + '\\n');
+    process.exit(1);
+  }
+
+  return parsed.data;
+}
+
+export const env = validateEnv();
+`;
+
+    const dotenvCheck = `#!/usr/bin/env node
+// scripts/check-env.js — run this before deployment to catch missing env vars
+import { createRequire } from 'module';
+import fs from 'fs';
+import path from 'path';
+
+const examplePath = path.resolve('.env.example');
+const localPath = path.resolve('.env');
+
+if (!fs.existsSync(localPath)) {
+  console.warn('⚠️  No .env file found (OK for production, check your hosting env vars)');
+  process.exit(0);
+}
+
+const example = fs.readFileSync(examplePath, 'utf8');
+const local = fs.readFileSync(localPath, 'utf8');
+
+const exampleKeys = example.split('\\n')
+  .filter(l => l.includes('=') && !l.startsWith('#'))
+  .map(l => l.split('=')[0].trim());
+
+const localKeys = new Set(
+  local.split('\\n')
+    .filter(l => l.includes('=') && !l.startsWith('#'))
+    .map(l => l.split('=')[0].trim())
+);
+
+const missing = exampleKeys.filter(k => !localKeys.has(k));
+if (missing.length > 0) {
+  console.error('❌ Missing env vars (in .env.example but not in .env):');
+  missing.forEach(k => console.error('  -', k));
+  process.exit(1);
+} else {
+  console.log('✅ All env vars from .env.example are present in .env');
+}
+`;
+
+    return [
+      installStep(packageManager, ['zod']),
+      {
+        type: 'write',
+        label: `Write lib/env.${ext}`,
+        filePath: `lib/env.${ext}`,
+        content: envFile,
+      },
+      {
+        type: 'write',
+        label: 'Write scripts/check-env.js',
+        filePath: 'scripts/check-env.js',
+        content: dotenvCheck,
+      },
+      {
+        type: 'doc',
+        label: 'Write docs/env-validate.md',
+        content: docContent(DATE),
+      },
+    ];
+  },
+
+  nextSteps() {
+    return [
+      'Edit lib/env.js to uncomment and add your required env vars',
+      'Import { env } from "@/lib/env" instead of process.env directly',
+      'Run `node scripts/check-env.js` to audit your .env against .env.example',
+      'Add `node scripts/check-env.js` to your CI pipeline pre-deploy step',
+    ];
+  },
+};
+
+function docContent(date) {
+  return `# Env Validate Setup Guide
+> Generated by ai-scaffold on ${date}
+
+## What was set up
+| Item | Detail |
+|------|--------|
+| Package | \`zod\` |
+| \`lib/env.js\` | Zod schema, validated at startup, exported as \`env\` |
+| \`scripts/check-env.js\` | Audit script: checks .env against .env.example |
+
+## Usage
+
+### Use validated env vars
+\`\`\`js
+// Instead of: process.env.DATABASE_URL
+import { env } from '@/lib/env';
+
+const db = new Pool({ connectionString: env.DATABASE_URL });
+console.log(env.NODE_ENV); // 'development' | 'test' | 'production'
+\`\`\`
+
+### Add new required vars
+\`\`\`js
+// In lib/env.js
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  DATABASE_URL: z.string().url(),                      // required
+  STRIPE_SECRET_KEY: z.string().startsWith('sk_'),     // validated format
+  OPTIONAL_FLAG: z.string().optional(),                // optional
+  PORT: z.coerce.number().default(3000),               // with default
+});
+\`\`\`
+
+### Check env before deploy
+\`\`\`bash
+node scripts/check-env.js
+\`\`\`
+
+## Resources
+- [Zod Docs](https://zod.dev)
+- [T3 Env (framework-specific)](https://env.t3.gg)
+`;
+}
