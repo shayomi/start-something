@@ -1,0 +1,179 @@
+import { installStep } from './utils.js';
+
+const DATE = new Date().toISOString().split('T')[0];
+
+export default {
+  name: 'Cloudflare R2',
+  description: 'Set up Cloudflare R2 object storage — S3-compatible, zero egress fees',
+  category: 'Storage',
+  supportedFrameworks: [],
+
+  steps(context) {
+    const { hasTypescript, packageManager } = context;
+    const ext = hasTypescript ? 'ts' : 'js';
+
+    const r2Client = hasTypescript
+      ? `import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+  HeadObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+// R2 uses the S3-compatible API
+export const r2 = new S3Client({
+  region: 'auto',
+  endpoint: \`https://\${process.env.CLOUDFLARE_ACCOUNT_ID!}.r2.cloudflarestorage.com\`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
+  },
+});
+
+const BUCKET = process.env.R2_BUCKET_NAME!;
+const PUBLIC_URL = process.env.R2_PUBLIC_URL ?? '';
+
+// ─── Upload ───────────────────────────────────────────────
+
+export async function uploadToR2(
+  key: string,
+  body: Buffer | Uint8Array | string,
+  contentType?: string
+): Promise<string> {
+  await r2.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }));
+  return PUBLIC_URL ? \`\${PUBLIC_URL}/\${key}\` : key;
+}
+
+// ─── Presigned upload URL (for client-side uploads) ────────
+
+export async function getR2UploadUrl(key: string, contentType: string, expiresIn = 300): Promise<string> {
+  return getSignedUrl(r2, new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }), { expiresIn });
+}
+
+// ─── Presigned download URL ────────────────────────────────
+
+export async function getR2DownloadUrl(key: string, expiresIn = 3600): Promise<string> {
+  return getSignedUrl(r2, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn });
+}
+
+// ─── Delete ───────────────────────────────────────────────
+
+export async function deleteFromR2(key: string): Promise<void> {
+  await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+export function generateR2Key(prefix: string, filename: string): string {
+  const ext = filename.split('.').pop();
+  return \`\${prefix}/\${crypto.randomUUID()}.\${ext}\`;
+}
+`
+      : `import {
+  S3Client, PutObjectCommand, GetObjectCommand,
+  DeleteObjectCommand, HeadObjectCommand,
+} from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+
+export const r2 = new S3Client({
+  region: 'auto',
+  endpoint: \`https://\${process.env.CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com\`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID,
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+  },
+});
+
+const BUCKET = process.env.R2_BUCKET_NAME;
+const PUBLIC_URL = process.env.R2_PUBLIC_URL ?? '';
+
+export async function uploadToR2(key, body, contentType) {
+  await r2.send(new PutObjectCommand({ Bucket: BUCKET, Key: key, Body: body, ContentType: contentType }));
+  return PUBLIC_URL ? \`\${PUBLIC_URL}/\${key}\` : key;
+}
+
+export async function getR2UploadUrl(key, contentType, expiresIn = 300) {
+  return getSignedUrl(r2, new PutObjectCommand({ Bucket: BUCKET, Key: key, ContentType: contentType }), { expiresIn });
+}
+
+export async function getR2DownloadUrl(key, expiresIn = 3600) {
+  return getSignedUrl(r2, new GetObjectCommand({ Bucket: BUCKET, Key: key }), { expiresIn });
+}
+
+export async function deleteFromR2(key) {
+  await r2.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: key }));
+}
+
+export function generateR2Key(prefix, filename) {
+  const ext = filename.split('.').pop();
+  return \`\${prefix}/\${crypto.randomUUID()}.\${ext}\`;
+}
+`;
+
+    return [
+      installStep(packageManager, ['@aws-sdk/client-s3', '@aws-sdk/s3-request-presigner']),
+      {
+        type: 'write',
+        label: `Write lib/r2.${ext}`,
+        filePath: `lib/r2.${ext}`,
+        content: r2Client,
+      },
+      {
+        type: 'env',
+        label: 'Add Cloudflare R2 env vars to .env.example',
+        vars: {
+          CLOUDFLARE_ACCOUNT_ID: 'your-cloudflare-account-id',
+          R2_ACCESS_KEY_ID: 'your-r2-access-key-id',
+          R2_SECRET_ACCESS_KEY: 'your-r2-secret-access-key',
+          R2_BUCKET_NAME: 'your-bucket-name',
+          R2_PUBLIC_URL: 'https://pub-xxx.r2.dev',
+        },
+      },
+      {
+        type: 'doc',
+        label: 'Write docs/cloudflare-r2.md',
+        content: docContent(DATE),
+      },
+    ];
+  },
+
+  nextSteps() {
+    return [
+      'Go to Cloudflare Dashboard → R2 → Create bucket',
+      'Go to R2 → Manage R2 API tokens → Create API token',
+      'Copy Account ID, Access Key ID, Secret Access Key into .env',
+      'Optional: enable public access for your bucket and set R2_PUBLIC_URL',
+      'Import { uploadToR2, getR2UploadUrl } from "@/lib/r2" in your API routes',
+    ];
+  },
+};
+
+function docContent(date) {
+  return `# Cloudflare R2 Setup Guide
+> Generated by ai-scaffold on ${date}
+
+## What is Cloudflare R2?
+R2 is Cloudflare's S3-compatible object storage with **zero egress fees** — you only pay for storage and writes.
+
+## What was set up
+| Item | Detail |
+|------|--------|
+| Packages | \`@aws-sdk/client-s3\`, \`@aws-sdk/s3-request-presigner\` |
+| \`lib/r2.js\` | R2 client (S3-compatible), upload, presigned URL helpers |
+
+## Usage
+\`\`\`js
+import { uploadToR2, getR2UploadUrl, getR2DownloadUrl, generateR2Key } from '@/lib/r2';
+
+const key = generateR2Key('uploads', 'photo.jpg');
+const url = await uploadToR2(key, fileBuffer, 'image/jpeg');
+
+// Client-side upload
+const uploadUrl = await getR2UploadUrl(key, 'image/jpeg');
+\`\`\`
+
+## Resources
+- [Cloudflare R2 Docs](https://developers.cloudflare.com/r2)
+- [R2 vs S3 Pricing](https://developers.cloudflare.com/r2/pricing)
+`;
+}

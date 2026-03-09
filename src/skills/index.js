@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import chalk from 'chalk';
 import ora from 'ora';
 import { execSync } from 'child_process';
-import { createRequire } from 'module';
 import { detectContext } from './utils.js';
 
 // Lazy-import inquirer to avoid issues in non-TTY environments
@@ -20,24 +19,263 @@ async function confirm(message) {
   return proceed;
 }
 
+// Alias map — maps alternate names to canonical skill IDs
+const ALIASES = {
+  // Postgres
+  postgresql: 'postgres',
+  pg: 'postgres',
+  // MySQL
+  mysql2: 'mysql',
+  mariadb: 'mysql',
+  // SQLite
+  sqlite3: 'sqlite',
+  // MongoDB
+  mongo: 'mongodb',
+  // Redis
+  redis: 'upstash-redis',
+  upstash: 'upstash-redis',
+  // Local Redis
+  'redis-docker': 'redis-local',
+  ioredis: 'redis-local',
+  // Firebase
+  firebase: 'firebase-firestore',
+  firestore: 'firebase-firestore',
+  // PlanetScale
+  planetscale: 'planetscale',
+  ps: 'planetscale',
+  // CockroachDB
+  cockroach: 'cockroachdb',
+  crdb: 'cockroachdb',
+  // Railway
+  railway: 'railway-postgres',
+  // Turso
+  libsql: 'turso',
+  // PocketBase
+  pb: 'pocketbase',
+  // Appwrite
+  aw: 'appwrite',
+  // ORM
+  orm: 'prisma',
+  // Stripe
+  payments: 'stripe',
+  // LemonSqueezy
+  lemon: 'lemonsqueezy',
+  ls: 'lemonsqueezy',
+  // Email
+  email: 'resend',
+  // Sentry
+  errors: 'sentry',
+  monitoring: 'sentry',
+  // PostHog
+  analytics: 'posthog',
+  ph: 'posthog',
+  // BullMQ
+  queue: 'bullmq',
+  queues: 'bullmq',
+  bull: 'bullmq',
+  // Inngest
+  jobs: 'inngest',
+  // Trigger.dev
+  'trigger.dev': 'trigger-dev',
+  trigger: 'trigger-dev',
+  // OpenAI
+  gpt: 'openai',
+  ai: 'openai',
+  // Pinecone
+  vectors: 'pinecone',
+  vectordb: 'pinecone',
+  // Env validate
+  'env-validation': 'env-validate',
+  'zod-env': 'env-validate',
+  // Testing
+  test: 'vitest',
+  tests: 'vitest',
+  e2e: 'playwright',
+  // Docker
+  docker: 'dockerize',
+  // GitHub Actions
+  ci: 'github-actions',
+  'github-ci': 'github-actions',
+  gh: 'github-actions',
+  // Search
+  search: 'meilisearch',
+  meili: 'meilisearch',
+  // S3
+  s3: 's3-storage',
+  aws: 's3-storage',
+  // Cloudflare R2
+  r2: 'cloudflare-r2',
+  cf: 'cloudflare-r2',
+  // MinIO
+  'object-storage': 'minio',
+  // DynamoDB
+  dynamo: 'dynamodb',
+  // Qdrant
+  'vector-search': 'qdrant',
+  // TimescaleDB
+  timeseries: 'timescaledb',
+  tsdb: 'timescaledb',
+};
+
 // Skill registry — loaded lazily to keep startup fast
 async function loadSkills() {
-  const [supabase, neon, strapi, shadcn, clerk, oauth] = await Promise.all([
+  const [
+    // Original skills
+    supabase, neon, strapi, shadcn, clerk, oauth,
+    // Database — SQL (local / general)
+    postgres, mysql, sqlite,
+    // Database — NoSQL / KV
+    mongodb, upstashRedis, firebaseFirestore,
+    // Database — SQL (managed cloud)
+    planetscale, cockroachdb, turso, railwayPostgres,
+    // Database — Backend stacks
+    appwrite, pocketbase,
+    // ORM / Database Tools
+    prisma, drizzle,
+    // Database — NoSQL (local)
+    redisLocal, dynamodb,
+    // Database — SQL (local, time-series)
+    timescaledb,
+    // Database — SQL (managed cloud, additional)
+    xata,
+    // AI / ML
+    openai, pinecone, qdrant,
+    // Payments
+    stripe, lemonsqueezy,
+    // Email
+    resend, postmark,
+    // Observability
+    sentry,
+    // Analytics
+    posthog, plausible,
+    // Background Jobs
+    bullmq, inngest, triggerDev,
+    // Developer Tools
+    envValidate,
+    // Testing
+    vitest, playwright,
+    // DevOps / Infra
+    dockerize, githubActions,
+    // Search
+    meilisearch, typesense,
+    // Storage
+    s3Storage, cloudflareR2, minio,
+  ] = await Promise.all([
     import('./supabase.js'),
     import('./neon.js'),
     import('./strapi.js'),
     import('./shadcn.js'),
     import('./clerk.js'),
     import('./oauth.js'),
+    import('./postgres.js'),
+    import('./mysql.js'),
+    import('./sqlite.js'),
+    import('./mongodb.js'),
+    import('./upstash-redis.js'),
+    import('./firebase-firestore.js'),
+    import('./planetscale.js'),
+    import('./cockroachdb.js'),
+    import('./turso.js'),
+    import('./railway-postgres.js'),
+    import('./appwrite.js'),
+    import('./pocketbase.js'),
+    // Phase 3
+    import('./prisma.js'),
+    import('./drizzle.js'),
+    import('./redis-local.js'),
+    import('./dynamodb.js'),
+    import('./timescaledb.js'),
+    import('./xata.js'),
+    import('./openai.js'),
+    import('./pinecone.js'),
+    import('./qdrant.js'),
+    import('./stripe.js'),
+    import('./lemonsqueezy.js'),
+    import('./resend.js'),
+    import('./postmark.js'),
+    import('./sentry.js'),
+    import('./posthog.js'),
+    import('./plausible.js'),
+    import('./bullmq.js'),
+    import('./inngest.js'),
+    import('./trigger-dev.js'),
+    import('./env-validate.js'),
+    import('./vitest.js'),
+    import('./playwright.js'),
+    import('./dockerize.js'),
+    import('./github-actions.js'),
+    import('./meilisearch.js'),
+    import('./typesense.js'),
+    import('./s3-storage.js'),
+    import('./cloudflare-r2.js'),
+    import('./minio.js'),
   ]);
 
   return {
+    // Original skills
     supabase: supabase.default,
     neon: neon.default,
     strapi: strapi.default,
     shadcn: shadcn.default,
     clerk: clerk.default,
     oauth: oauth.default,
+    // Database — SQL (managed cloud)
+    planetscale: planetscale.default,
+    cockroachdb: cockroachdb.default,
+    turso: turso.default,
+    'railway-postgres': railwayPostgres.default,
+    xata: xata.default,
+    // Database — SQL (local / general)
+    postgres: postgres.default,
+    mysql: mysql.default,
+    sqlite: sqlite.default,
+    timescaledb: timescaledb.default,
+    // Database — NoSQL / KV
+    mongodb: mongodb.default,
+    'upstash-redis': upstashRedis.default,
+    'firebase-firestore': firebaseFirestore.default,
+    'redis-local': redisLocal.default,
+    dynamodb: dynamodb.default,
+    // Database — Backend stacks
+    appwrite: appwrite.default,
+    pocketbase: pocketbase.default,
+    // ORM / Database Tools
+    prisma: prisma.default,
+    drizzle: drizzle.default,
+    // AI / ML
+    openai: openai.default,
+    pinecone: pinecone.default,
+    qdrant: qdrant.default,
+    // Payments
+    stripe: stripe.default,
+    lemonsqueezy: lemonsqueezy.default,
+    // Email
+    resend: resend.default,
+    postmark: postmark.default,
+    // Observability
+    sentry: sentry.default,
+    // Analytics
+    posthog: posthog.default,
+    plausible: plausible.default,
+    // Background Jobs
+    bullmq: bullmq.default,
+    inngest: inngest.default,
+    'trigger-dev': triggerDev.default,
+    // Developer Tools
+    'env-validate': envValidate.default,
+    // Testing
+    vitest: vitest.default,
+    playwright: playwright.default,
+    // DevOps / Infra
+    dockerize: dockerize.default,
+    'github-actions': githubActions.default,
+    // Search
+    meilisearch: meilisearch.default,
+    typesense: typesense.default,
+    // Storage
+    's3-storage': s3Storage.default,
+    'cloudflare-r2': cloudflareR2.default,
+    minio: minio.default,
   };
 }
 
@@ -48,21 +286,34 @@ export async function listSkills() {
     name: skill.name,
     description: skill.description,
     supportedFrameworks: skill.supportedFrameworks,
+    category: skill.category || 'Other',
   }));
 }
 
 export async function runSkill(skillName, options = {}) {
   const registry = await loadSkills();
-  const skill = registry[skillName.toLowerCase()];
+
+  // Resolve aliases
+  const canonical = ALIASES[skillName.toLowerCase()] || skillName.toLowerCase();
+  const skill = registry[canonical];
 
   if (!skill) {
     console.log(chalk.red(`\n  Unknown skill: ${chalk.bold(skillName)}\n`));
     console.log(chalk.bold('  Available skills:\n'));
     const skills = await listSkills();
-    skills.forEach(({ id, name, description }) => {
-      console.log(`  ${chalk.cyan('●')} ${chalk.bold(id.padEnd(12))} ${chalk.gray(description)}`);
+    // Group by category
+    const byCategory = {};
+    skills.forEach(({ id, name, description, category }) => {
+      if (!byCategory[category]) byCategory[category] = [];
+      byCategory[category].push({ id, name, description });
     });
-    console.log('');
+    Object.entries(byCategory).forEach(([cat, items]) => {
+      console.log(chalk.bold.cyan(`  ${cat}`));
+      items.forEach(({ id, description }) => {
+        console.log(`    ${chalk.cyan('●')} ${chalk.bold(id.padEnd(20))} ${chalk.gray(description)}`);
+      });
+      console.log('');
+    });
     process.exit(1);
   }
 
@@ -80,7 +331,7 @@ export async function runSkill(skillName, options = {}) {
     process.exit(1);
   }
 
-  // Detect context
+  // Detect context (now includes packageManager)
   const context = await detectContext(projectDir);
 
   // Framework compatibility check
@@ -105,6 +356,9 @@ export async function runSkill(skillName, options = {}) {
 
   // Show plan
   console.log(chalk.bold.magenta(`\n  ${skill.name} — Setup Plan\n`));
+  if (skill.description) {
+    console.log(chalk.gray(`  ${skill.description}\n`));
+  }
   steps.forEach((step, i) => {
     const label = step.label || step.command || step.filePath || step.type;
     console.log(`  ${chalk.gray(`${i + 1}.`)} ${label}`);
@@ -122,7 +376,7 @@ export async function runSkill(skillName, options = {}) {
 
   // Execute steps
   for (const step of steps) {
-    await runStep(step, context, skill.name.toLowerCase());
+    await runStep(step, context, canonical);
   }
 
   // Print next steps
@@ -135,7 +389,7 @@ export async function runSkill(skillName, options = {}) {
   }
 
   console.log(
-    chalk.gray(`\n  Docs written to ${chalk.white(`docs/${skill.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.md`)}\n`)
+    chalk.gray(`\n  Docs written to ${chalk.white(`docs/${canonical}.md`)}\n`)
   );
 }
 
